@@ -83,7 +83,7 @@ static bool handle_http_request(int sockfd)
         if (method == GET){
             // get the size of the file
             struct stat st;
-            stat("3_first_turn", &st);
+            stat("3_first_turn.html", &st);
             n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
             // send the header first
             if (write(sockfd, buff, n) < 0)
