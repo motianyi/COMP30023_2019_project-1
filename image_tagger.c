@@ -79,7 +79,7 @@ static bool handle_http_request(int sockfd)
         ++curr;
     printf("%s", curr);
     // assume the only valid request URI is "/" but it can be modified to accept more files
-    if (strncmp(curr, " ?start=Start", 12)){
+    if (strncmp(curr, " ?start=Start", 12) == 0){
         if (method == GET){
             // get the size of the file
             struct stat st;
