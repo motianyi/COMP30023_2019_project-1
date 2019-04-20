@@ -77,12 +77,13 @@ static bool handle_http_request(int sockfd)
     // sanitise the URI
     while (*curr == '.' || *curr == '/')
         ++curr;
+    printf("%s", curr);
     // assume the only valid request URI is "/" but it can be modified to accept more files
-    if (*curr == '?start=Start'){
+    if (strncmp(curr, " ?start=Start", 12)){
         if (method == GET){
             // get the size of the file
             struct stat st;
-            stat("3_accepted.html", &st);
+            stat("3_first_turn", &st);
             n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
             // send the header first
             if (write(sockfd, buff, n) < 0)
@@ -91,7 +92,7 @@ static bool handle_http_request(int sockfd)
                 return false;
             }
             // send the file
-            int filefd = open("3_accepted.html", O_RDONLY);
+            int filefd = open("3_first_turn.html", O_RDONLY);
             do
             {
                 n = sendfile(sockfd, filefd, NULL, 2048);
