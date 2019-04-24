@@ -37,8 +37,16 @@ typedef enum
     UNKNOWN
 } METHOD;
 
+static int game_state(int x){
+    //1 first player is ready
+    //2 second player is ready
+    //3 both player are ready
+    static int gamestate;
+}
+
 static bool handle_http_request(int sockfd)
-{
+{   static int player_sockets[2] = {0,0};
+    static int gamestate = 0;
     // try to read the request
     char buff[2049];
     int n = read(sockfd, buff, 2049);
@@ -56,7 +64,7 @@ static bool handle_http_request(int sockfd)
 
     char * curr = buff;
     
-    printf("%s\n",curr);
+    // printf("%s\n",curr);
     // parse the method
     METHOD method = UNKNOWN;
     if (strncmp(curr, "GET ", 4) == 0)
@@ -108,6 +116,15 @@ static bool handle_http_request(int sockfd)
     
     // assume the only valid request URI is "/" but it can be modified to accept more files
     if (strncmp(curr, "?start=Start", 12) == 0){
+        if(player_sockets[0] != 0 && player_sockets[1] == 0){
+            gamestate = 1;
+        }else if(player_sockets[1] == 0 && player_sockets[1] != 0){
+            gamestate = 2;
+        }else if(player_sockets[0] != 0 && player_sockets[1] != 0){
+            gamestate = 3;
+        }else{
+            printf("ERROR, start");
+        }
         if (method == GET){
             // get the size of the file
             struct stat st;
@@ -134,40 +151,72 @@ static bool handle_http_request(int sockfd)
             }
             close(filefd);
         }else if (method == POST){
-            printf("ADDRESS=%x",strstr(curr, "guess=Guess") != NULL);
-            if (strstr(curr, "guess=Guess") != NULL){       
-                
-                // get the size of the file
-                struct stat st;
-                stat("4_accepted.html", &st);
-                n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
-                // send the header first
-                if (write(sockfd, buff, n) < 0)
-                {
-                    perror("write");
-                    return false;
-                }
-                // send the file
-                int filefd = open("4_accepted.html", O_RDONLY);
-                do
-                {
-                    n = sendfile(sockfd, filefd, NULL, 2048);
-                }
-                while (n > 0);
-                if (n < 0)
-                {
-                    perror("sendfile");
+            if (strstr(curr, "guess=Guess") != NULL){  
+                //both player are ready     
+                if(gamestate == 3){
+                    // get the size of the file
+                    struct stat st;
+                    stat("4_accepted.html", &st);
+                    n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
+                    // send the header first
+                    if (write(sockfd, buff, n) < 0)
+                    {
+                        perror("write");
+                        return false;
+                    }
+                    // send the file
+                    int filefd = open("4_accepted.html", O_RDONLY);
+                    do
+                    {
+                        n = sendfile(sockfd, filefd, NULL, 2048);
+                    }
+                    while (n > 0);
+                    if (n < 0)
+                    {
+                        perror("sendfile");
+                        close(filefd);
+                        return false;
+                    }
                     close(filefd);
-                    return false;
+                }else{
+                    // get the size of the file
+                    struct stat st;
+                    stat("5_discarded.html", &st);
+                    n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
+                    // send the header first
+                    if (write(sockfd, buff, n) < 0)
+                    {
+                        perror("write");
+                        return false;
+                    }
+                    // send the file
+                    int filefd = open("5_discarded.html", O_RDONLY);
+                    do
+                    {
+                        n = sendfile(sockfd, filefd, NULL, 2048);
+                    }
+                    while (n > 0);
+                    if (n < 0)
+                    {
+                        perror("sendfile");
+                        close(filefd);
+                        return false;
+                    }
+                    close(filefd);
                 }
-                close(filefd);
             }
         }
     }
-    
-    if (*curr == ' ')
+    if (*curr == ' '){
         if (method == GET)
-        {
+        {   
+            if(player_sockets[0] == 0){
+                player_sockets[0] = sockfd;
+            }else if(player_sockets[1] == 0){
+                player_sockets[1] = sockfd;
+            }else{
+                printf("Already 2 players");
+            }
             // get the size of the file
             struct stat st;
             stat("1_intro.html", &st);
@@ -194,26 +243,18 @@ static bool handle_http_request(int sockfd)
             close(filefd);
         }
         else if (method == POST)
-        {
-            // locate the username, it is safe to do so in this sample code, but usually the result is expected to be
-            // copied to another buffer using strcpy or strncpy to ensure that it will not be overwritten.
-            char * username = strstr(buff, "user=") + 5;
-            int username_length = strlen(username);
-            // the length needs to include the ", " before the username
-            long added_length = username_length + 2;
-
+        {   
             // get the size of the file
             struct stat st;
             stat("2_start.html", &st);
-            // increase file size to accommodate the username
-            long size = st.st_size + added_length;
-            n = sprintf(buff, HTTP_200_FORMAT, size);
+            n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
             // send the header first
             if (write(sockfd, buff, n) < 0)
             {
                 perror("write");
                 return false;
             }
+            // send the file
             int filefd = open("2_start.html", O_RDONLY);
             do
             {
@@ -227,6 +268,38 @@ static bool handle_http_request(int sockfd)
                 return false;
             }
             close(filefd);
+            // // locate the username, it is safe to do so in this sample code, but usually the result is expected to be
+            // // copied to another buffer using strcpy or strncpy to ensure that it will not be overwritten.
+            // char * username = strstr(buff, "user=") + 5;
+            // int username_length = strlen(username);
+            // // the length needs to include the ", " before the username
+            // long added_length = username_length + 2;
+
+            // // get the size of the file
+            // struct stat st;
+            // stat("2_start.html", &st);
+            // // increase file size to accommodate the username
+            // long size = st.st_size + added_length;
+            // n = sprintf(buff, HTTP_200_FORMAT, size);
+            // // send the header first
+            // if (write(sockfd, buff, n) < 0)
+            // {
+            //     perror("write");
+            //     return false;
+            // }
+            // int filefd = open("2_start.html", O_RDONLY);
+            // do
+            // {
+            //     n = sendfile(sockfd, filefd, NULL, 2048);
+            // }
+            // while (n > 0);
+            // if (n < 0)
+            // {
+            //     perror("sendfile");
+            //     close(filefd);
+            //     return false;
+            // }
+            // close(filefd);
 
             // // read the content of the HTML file
             // int filefd = open("lab6-POST.html", O_RDONLY);
@@ -258,12 +331,11 @@ static bool handle_http_request(int sockfd)
             // never used, just for completeness
             fprintf(stderr, "no other methods supported");
     // send 404
-    else if (write(sockfd, HTTP_404, HTTP_404_LENGTH) < 0)
-    {
+    }else if (write(sockfd, HTTP_404, HTTP_404_LENGTH) < 0){
         perror("write");
         return false;
     }
-
+    printf("return true\n");
     return true;
 }
 
@@ -317,9 +389,17 @@ int main(int argc, char * argv[])
     int maxfd = sockfd;
 
     while (1)
-    {
+    {   
         // monitor file descriptors
+        int total = 0;
         fd_set readfds = masterfds;
+        for (int i = 0; i <= maxfd; ++i){
+            if (FD_ISSET(i, &readfds)){
+                total++;
+            }
+        }
+        printf("total number of socket %d\n",total);
+
         if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) < 0)
         {
             perror("select");
@@ -330,7 +410,9 @@ int main(int argc, char * argv[])
         for (int i = 0; i <= maxfd; ++i)
             // determine if the current file descriptor is active
             if (FD_ISSET(i, &readfds))
-            {
+            
+            {   
+                printf("%d is readey to read\n", i);
                 // create new socket if there is new incoming connection request
                 if (i == sockfd)
                 {
@@ -367,3 +449,4 @@ int main(int argc, char * argv[])
 
     return 0;
 }
+
