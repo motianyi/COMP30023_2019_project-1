@@ -55,7 +55,8 @@ static bool handle_http_request(int sockfd)
     buff[n] = 0;
 
     char * curr = buff;
-
+    
+    printf("%s\n",curr);
     // parse the method
     METHOD method = UNKNOWN;
     if (strncmp(curr, "GET ", 4) == 0)
@@ -73,11 +74,38 @@ static bool handle_http_request(int sockfd)
         perror("write");
         return false;
     }
-
+    
     // sanitise the URI
-    while (*curr == '.' || *curr == '/')
+    while (*curr == '.' || *curr == '/'){
         ++curr;
-    printf("%s", curr);
+    }
+    if (strstr(curr, "quit=Quit") != NULL){       
+        // get the size of the file
+        struct stat st;
+        stat("7_gameover.html", &st);
+        n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
+        // send the header first
+        if (write(sockfd, buff, n) < 0)
+        {
+            perror("write");
+            return false;
+        }
+        // send the file
+        int filefd = open("7_gameover.html", O_RDONLY);
+        do
+        {
+            n = sendfile(sockfd, filefd, NULL, 2048);
+        }
+        while (n > 0);
+        if (n < 0)
+        {
+            perror("sendfile");
+            close(filefd);
+            return false;
+        }
+        close(filefd);
+    }
+    
     // assume the only valid request URI is "/" but it can be modified to accept more files
     if (strncmp(curr, "?start=Start", 12) == 0){
         if (method == GET){
@@ -105,8 +133,38 @@ static bool handle_http_request(int sockfd)
                 return false;
             }
             close(filefd);
+        }else if (method == POST){
+            printf("ADDRESS=%x",strstr(curr, "guess=Guess") != NULL);
+            if (strstr(curr, "guess=Guess") != NULL){       
+                
+                // get the size of the file
+                struct stat st;
+                stat("4_accepted.html", &st);
+                n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
+                // send the header first
+                if (write(sockfd, buff, n) < 0)
+                {
+                    perror("write");
+                    return false;
+                }
+                // send the file
+                int filefd = open("4_accepted.html", O_RDONLY);
+                do
+                {
+                    n = sendfile(sockfd, filefd, NULL, 2048);
+                }
+                while (n > 0);
+                if (n < 0)
+                {
+                    perror("sendfile");
+                    close(filefd);
+                    return false;
+                }
+                close(filefd);
+            }
         }
     }
+    
     if (*curr == ' ')
         if (method == GET)
         {
