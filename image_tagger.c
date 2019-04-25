@@ -36,12 +36,57 @@ typedef enum
     POST,
     UNKNOWN
 } METHOD;
-
-static int game_state(int x){
-    //1 first player is ready
+//1 first player is ready
     //2 second player is ready
     //3 both player are ready
+    
+static int game_state(int x){
+    
     static int gamestate;
+}
+
+static bool game(char* word){
+    printf("CALLED\n");
+    static char words[100][100];
+    static int length = 0;
+    //check whether the word is in array
+    printf("length =%d\n",length);
+    bool in_array = false;
+    int i = 0;
+    int j = 0;
+    
+    for(j = 0;j<100; j++){
+        if(j<strlen(word)){
+            words[length][j] = word[j];
+        }
+    }
+    
+    length += 1;
+    for(i = 0; i<length; i++){
+        // printf("%d word is %s\n",i+1,words[i][0]);
+        // if(strcmp(words[i], word)==0){
+        //     printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXinarray\n");
+        //     in_array = true;
+        // }
+    }
+    
+    for(i =0;i<100;i++){
+        for(j = 0;j<100; j++){
+            printf("%c",words[i][j]);
+        }
+    }
+    // if(in_array == true){
+    //     return true;
+    // }else{
+    //     if(length<100){
+    //         words[length+1] = word;
+    //         length += 1;
+    //     }else{
+    //         printf("to many words, more than 100");
+    //     }
+    //     return false;
+    // }
+    return false;
 }
 
 static bool handle_http_request(int sockfd)
@@ -87,7 +132,19 @@ static bool handle_http_request(int sockfd)
     while (*curr == '.' || *curr == '/'){
         ++curr;
     }
-    if (strstr(curr, "quit=Quit") != NULL){       
+    if (strstr(curr, "quit=Quit") != NULL){
+        
+        if(player_sockets[0] == sockfd){
+            //player 1 quit game
+            gamestate = -1;
+            player_sockets[0] = 0;
+        }else if(player_sockets[1] == sockfd){
+            //player 2 quit game
+            gamestate = -2;
+            player_sockets[1] = 0;
+        }else{
+            printf("error");
+        }  
         // get the size of the file
         struct stat st;
         stat("7_gameover.html", &st);
@@ -116,16 +173,26 @@ static bool handle_http_request(int sockfd)
     
     // assume the only valid request URI is "/" but it can be modified to accept more files
     if (strncmp(curr, "?start=Start", 12) == 0){
-        if(player_sockets[0] != 0 && player_sockets[1] == 0){
-            gamestate = 1;
-        }else if(player_sockets[1] == 0 && player_sockets[1] != 0){
-            gamestate = 2;
-        }else if(player_sockets[0] != 0 && player_sockets[1] != 0){
-            gamestate = 3;
-        }else{
-            printf("ERROR, start");
-        }
+        
         if (method == GET){
+            if(player_sockets[0] == 0){
+                player_sockets[0] = sockfd;
+            }else if(player_sockets[1] == 0){
+                player_sockets[1] = sockfd;
+            }else{
+                printf("Already 2 players");
+            }
+
+
+            if(player_sockets[0] != 0 && player_sockets[1] == 0){
+                gamestate = 1;
+            }else if(player_sockets[1] == 0 && player_sockets[1] != 0){
+                gamestate = 2;
+            }else if(player_sockets[0] != 0 && player_sockets[1] != 0){
+                gamestate = 3;
+            }else{
+                printf("ERROR, start");
+            }
             // get the size of the file
             struct stat st;
             stat("3_first_turn.html", &st);
@@ -151,9 +218,66 @@ static bool handle_http_request(int sockfd)
             }
             close(filefd);
         }else if (method == POST){
-            if (strstr(curr, "guess=Guess") != NULL){  
-                //both player are ready     
-                if(gamestate == 3){
+            if (strstr(curr, "guess=Guess") != NULL){
+
+                
+
+                if(gamestate < 0){
+                    // get the size of the file
+                    struct stat st;
+                    stat("7_gameover.html", &st);
+                    n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
+                    // send the header first
+                    if (write(sockfd, buff, n) < 0)
+                    {
+                        perror("write");
+                        return false;
+                    }
+                    // send the file
+                    int filefd = open("7_gameover.html", O_RDONLY);
+                    do
+                    {
+                        n = sendfile(sockfd, filefd, NULL, 2048);
+                    }
+                    while (n > 0);
+                    if (n < 0)
+                    {
+                        perror("sendfile");
+                        close(filefd);
+                        return false;
+                    }
+                    close(filefd);
+
+                }else if(gamestate == 3){
+                    char* guess = strstr(curr, "guess=Guess");
+                    char* keyword = strstr(curr, "keyword=");
+                    // printf("%p", guess);
+                    // printf("%p", keyword);
+
+                    //skip the string "keyword="
+                    char* x = keyword+8;
+                    int i = 0;
+                    
+                    char word[100] = {};
+                    // for(i = 0; i<10; i++){
+                    while(x != guess){
+                        
+                        // printf("%p\n",x);
+                        // printf("%c\n",*x);
+                        word[i] = *x;
+                        i++;
+                        x++;
+                    }
+                    word[i-1] = '\0';
+                    printf("%s\n",word);
+                    if(game(word) == true){
+                        printf("YYY");
+                    }else{
+                        printf("NNNN");
+                    }
+                    // printf("\n%s\n\n",curr);
+                    
+                    //both player are ready  
                     // get the size of the file
                     struct stat st;
                     stat("4_accepted.html", &st);
@@ -210,13 +334,7 @@ static bool handle_http_request(int sockfd)
     if (*curr == ' '){
         if (method == GET)
         {   
-            if(player_sockets[0] == 0){
-                player_sockets[0] = sockfd;
-            }else if(player_sockets[1] == 0){
-                player_sockets[1] = sockfd;
-            }else{
-                printf("Already 2 players");
-            }
+            
             // get the size of the file
             struct stat st;
             stat("1_intro.html", &st);
@@ -244,6 +362,7 @@ static bool handle_http_request(int sockfd)
         }
         else if (method == POST)
         {   
+            
             // get the size of the file
             struct stat st;
             stat("2_start.html", &st);
