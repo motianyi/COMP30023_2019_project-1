@@ -46,34 +46,106 @@ typedef enum
     //3 both player are ready
 
     //5 finish
-    
-static bool sendhttp(char* filename, int sockfd, char* buff, int n){
-    
+static char* get_image_name(int turn){
+    if(turn == 1){
+        return IMAGE_1;
+    }else if(turn == 2){
+        return IMAGE_2;
+    }else if(turn == 3){
+        return IMAGE_3;
+    }else{
+        return IMAGE_4;
+    }
+}
+
+static bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
+    char html[2049];
     // get the size of the file
     struct stat st;
     stat(filename, &st);
-    n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
+    
+    //find the image name of this turn
+    char* img_name = get_image_name(turn);
+
+    // increase file size to accommodate the username
+    long size = 0;
+    if(strcmp(filename, "6_endgame.html")== 0 || strcmp(filename, "7_gameover.html")==0){
+        size = st.st_size;
+    }else{
+        size = st.st_size + strlen(img_name)-2;
+    }    
+    // long size = st.st_size + strlen(img_name)-2;
+    int a;
+    a = sprintf(buff, HTTP_200_FORMAT, size);
     // send the header first
-    if (write(sockfd, buff, n) < 0)
+    if (write(sockfd, buff, a) < 0)
     {
         perror("write");
+        printf("false1\n");
         return false;
+        
     }
-    // send the file
+
+    
+    // read the content of the HTML file
     int filefd = open(filename, O_RDONLY);
-    do
+    a = read(filefd, buff, 2048);
+    
+    if (a < 0)
     {
-        n = sendfile(sockfd, filefd, NULL, 2048);
-    }
-    while (n > 0);
-    if (n < 0)
-    {
-        perror("sendfile");
+        perror("read");
         close(filefd);
+        printf("false2\n");
         return false;
     }
     close(filefd);
+    a = sprintf(html, buff, img_name);
+
+    if (a < 0)
+    {
+        perror("sprintf get error");
+        close(filefd);
+        printf("false3\n");
+        return false;
+    }
+    // printf("%.*s\n",(int)size, html);
+    if (write(sockfd, html, size) < 0)
+    {
+        perror("write");
+        printf("false4\n");
+        return false;
+    }
+    return true;
+
 }
+    
+// static bool sendhttp(char* filename, int sockfd, char* buff, int* n){
+    
+//     // get the size of the file
+//     struct stat st;
+//     stat(filename, &st);
+//     *n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
+//     // send the header first
+//     if (write(sockfd, buff, *n) < 0)
+//     {
+//         perror("write");
+//         return false;
+//     }
+//     // send the file
+//     int filefd = open(filename, O_RDONLY);
+//     do
+//     {
+//         *n = sendfile(sockfd, filefd, NULL, 2048);
+//     }
+//     while (*n > 0);
+//     if (*n < 0)
+//     {
+//         perror("sendfile");
+//         close(filefd);
+//         return false;
+//     }
+//     close(filefd);
+// }
 
 static bool game(char* word, int player){
 
@@ -122,6 +194,7 @@ static bool game(char* word, int player){
             length2+=1;
             printf("length2 is %d\n",length2);
         }
+        printf("false5\n");
         return false;
     }else if(player == 1){
         
@@ -152,6 +225,7 @@ static bool game(char* word, int player){
             length1+=1;
             printf("length1 is %d\n",length1);
         }
+        printf("false6\n");
         return false;
     }else{
         printf("ERROR, palyer = 0");
@@ -163,22 +237,46 @@ static bool game(char* word, int player){
 
 static bool handle_http_request(int sockfd){
     static int turn = 1;
+            
     static int player_sockets[2] = {0,0};
     static int gamestate = 0;
     // try to read the request
+    // char buff[2049];
+    // int n = read(sockfd, buff, 2049);
+    // printf("%d\n\n\n",n);
+    // if (n <= 0)
+    // {   
+        
+    //     if (n < 0){
+    //         perror("read");
+    //     }else{
+    //         printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+    //         printf("socket %d close the connection\n", sockfd);
+    //         if(player_sockets[0]==sockfd){
+    //             player_sockets[0] = 0;
+    //         }else if(player_sockets[1]==sockfd){
+    //             player_sockets[1] = 0;
+    //         }
+    //     }
+    //     return false;
+    // }
+
     char buff[2049];
     int n = read(sockfd, buff, 2049);
-    if (n <= 0)
-    {
-        if (n < 0)
+    if (n <= 0){
+        if (n < 0){
             perror("read");
-        else
+        }else{
+            
             printf("socket %d close the connection\n", sockfd);
             if(player_sockets[0]==sockfd){
                 player_sockets[0] = 0;
             }else if(player_sockets[1]==sockfd){
                 player_sockets[1] = 0;
             }
+        }
+        printf("MMMMMMMMMMMMMMMMMMMMMM");
+        printf("false10\n");
         return false;
     }
 
@@ -206,6 +304,7 @@ static bool handle_http_request(int sockfd){
     else if (write(sockfd, HTTP_400, HTTP_400_LENGTH) < 0)
     {
         perror("write");
+        printf("false11\n");
         return false;
     }
     
@@ -228,42 +327,21 @@ static bool handle_http_request(int sockfd){
         }
 
         bool result;
-        result = sendhttp("7_gameover.html", sockfd, buff, n);
+        result = sendhttp("7_gameover.html", sockfd, buff, &n, turn);
         if(result == false){
+            printf("false12\n");
             return false;
         }
-        // // get the size of the file
-        // struct stat st;
-        // stat("7_gameover.html", &st);
-        // n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
-        // // send the header first
-        // if (write(sockfd, buff, n) < 0)
-        // {
-        //     perror("write");
-        //     return false;
-        // }
-        // // send the file
-        // int filefd = open("7_gameover.html", O_RDONLY);
-        // do
-        // {
-        //     n = sendfile(sockfd, filefd, NULL, 2048);
-        // }
-        // while (n > 0);
-        // if (n < 0)
-        // {
-        //     perror("sendfile");
-        //     close(filefd);
-        //     return false;
-        // }
-        // close(filefd);
+        
+       
+
         // printf("GAMESTATE = %d\n",gamestate);
         // printf("first player socket:%d\n",player_sockets[0]);
         // printf("second player socket:%d\n",player_sockets[1]);
-    }
-    
-    // assume the only valid request URI is "/" but it can be modified to accept more files
-    if (strncmp(curr, "?start=Start", 12) == 0){
-        
+
+
+    }else if (strncmp(curr, "?start=Start", 12) == 0){
+        // assume the only valid request URI is "/" but it can be modified to accept more files
         printf("START = START%d\n",sockfd);
         if (method == GET){
             if(player_sockets[0] == 0){
@@ -271,59 +349,33 @@ static bool handle_http_request(int sockfd){
             }else if(player_sockets[1] == 0){
                 player_sockets[1] = sockfd;
             }else{
-                printf("Already 2 players");
+                printf("both sockets are allocated, is it second round?\n");
             }
+
+            printf("first player socket:%d\n",player_sockets[0]);
+            printf("second player socket:%d\n",player_sockets[1]);
 
 
             if(player_sockets[0] != 0 && player_sockets[1] == 0){
                 gamestate = 1;
             }else if(player_sockets[1] == 0 && player_sockets[1] != 0){
                 gamestate = 2;
-            }else if(player_sockets[0] != 0 && player_sockets[1] != 0){
+            }else if(player_sockets[0] != 0 && player_sockets[1] != 0 && gamestate != 5){
                 gamestate = 3;
             }else{
                 printf("ERROR, start");
             }
 
             bool result;
-            result = sendhttp("3_first_turn.html", sockfd, buff, n);
+            result = sendhttp("3_first_turn.html", sockfd, buff, &n, turn);
             if(result == false){
+                printf("false13\n");
                 return false;
             }
     
-            // // get the size of the file
-            // struct stat st;
-            // stat("3_first_turn.html", &st);
-            // n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
-            // // send the header first
-            // if (write(sockfd, buff, n) < 0)
-            // {
-            //     perror("write");
-            //     return false;
-            // }
-            // // send the file
-            // int filefd = open("3_first_turn.html", O_RDONLY);
-            // do
-            // {
-            //     n = sendfile(sockfd, filefd, NULL, 2048);
-            // }
-            // while (n > 0);
-            // if (n < 0)
-            // {
-            //     perror("sendfile");
-            //     close(filefd);
-            //     return false;
-            // }
-            // close(filefd);
-            
+                      
         }else if (method == POST){
-            if(player_sockets[0] == 0 && player_sockets[1] != 0 && player_sockets[1]!= sockfd){
-                player_sockets[0] = sockfd;
-            }else if(player_sockets[1] == 0 && player_sockets[0] != 0 && player_sockets[0]!= sockfd){
-                player_sockets[1] = sockfd;
-            }else{
-                printf("Already 2 players");
-            }
+            
             if (strstr(curr, "guess=Guess") != NULL){
                 printf("GUESS_SOCKET=%d\n",sockfd);
                 
@@ -341,76 +393,42 @@ static bool handle_http_request(int sockfd){
                         printf("error");
                     }
                     bool result;
-                    result = sendhttp("7_gameover.html", sockfd, buff, n);
+                    result = sendhttp("7_gameover.html", sockfd, buff, &n, turn);
                     if(result == false){
+                        printf("false14\n");
                         return false;
                     }
-                    // // get the size of the file
-                    // struct stat st;
-                    // stat("7_gameover.html", &st);
-                    // n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
-                    // // send the header first
-                    // if (write(sockfd, buff, n) < 0)
-                    // {
-                    //     perror("write");
-                    //     return false;
-                    // }
-                    // // send the file
-                    // int filefd = open("7_gameover.html", O_RDONLY);
-                    // do
-                    // {
-                    //     n = sendfile(sockfd, filefd, NULL, 2048);
-                    // }
-                    // while (n > 0);
-                    // if (n < 0)
-                    // {
-                    //     perror("sendfile");
-                    //     close(filefd);
-                    //     return false;
-                    // }
-                    // close(filefd);
+                  
                 }else if(gamestate == 5){
 
 
                     bool result;
-                    result = sendhttp("6_endgame.html", sockfd, buff, n);
+                    result = sendhttp("6_endgame.html", sockfd, buff, &n, turn);
                     if(result == false){
+                        printf("false15\n");
                         return false;
                     }
-                    
-                    // // get the size of the file
-                    // struct stat st;
-                    // stat("6_endgame.html", &st);
-                    // n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
-                    // // send the header first
-                    // if (write(sockfd, buff, n) < 0)
-                    // {
-                    //     perror("write");
-                    //     return false;
-                    // }
-                    // // send the file
-                    // int filefd = open("6_endgame.html", O_RDONLY);
-                    // do
-                    // {
-                    //     n = sendfile(sockfd, filefd, NULL, 2048);
-                    // }
-                    // while (n > 0);
-                    // if (n < 0)
-                    // {
-                    //     perror("sendfile");
-                    //     close(filefd);
-                    //     return false;
-                    // }
-                    // close(filefd);
-                    
+                                        
                     if(player_sockets[0] == sockfd){
                         player_sockets[0] = 0;
                     }else if(player_sockets[1] == sockfd){
                         player_sockets[1] = 0;
                     }else{
                         printf("ERROR\n");
-                    }        
+                    }
+                    //both player are ready for next turn
+                   
+                    printf("after end this game:\n");
+                    printf("first player socket:%d\n",player_sockets[0]);
+                    printf("second player socket:%d\n",player_sockets[1]);     
                 }else if(gamestate == 3){
+                    if(player_sockets[0] == 0 && player_sockets[1] != 0 && player_sockets[1]!= sockfd){
+                        player_sockets[0] = sockfd;
+                    }else if(player_sockets[1] == 0 && player_sockets[0] != 0 && player_sockets[0]!= sockfd){
+                        player_sockets[1] = sockfd;
+                    }else{
+                        printf("both have sockets");
+                    }
                     char* guess = strstr(curr, "guess=Guess");
                     char* keyword = strstr(curr, "keyword=");
                     // printf("%p", guess);
@@ -443,119 +461,72 @@ static bool handle_http_request(int sockfd){
                         //set gamestate to finish game
                         gamestate = 5;
                         printf("YYY");
-                        // // get the size of the file
-                        // struct stat st;
-                        // stat("6_endgame.html", &st);
-                        // n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
-                        // // send the header first
-                        // if (write(sockfd, buff, n) < 0)
-                        // {
-                        //     perror("write");
-                        //     return false;
-                        // }
-                        // // send the file
-                        // int filefd = open("6_endgame.html", O_RDONLY);
-                        // do
-                        // {
-                        //     n = sendfile(sockfd, filefd, NULL, 2048);
-                        // }
-                        // while (n > 0);
-                        // if (n < 0)
-                        // {
-                        //     perror("sendfile");
-                        //     close(filefd);
-                        //     return false;
-                        // }
-                        // close(filefd);
-
+                        
+                     
                         bool result;
-                        result = sendhttp("6_endgame.html", sockfd, buff, n);
+                        result = sendhttp("6_endgame.html", sockfd, buff, &n, turn);
                         if(result == false){
+                            printf("false16\n");
                             return false;
                         }
-                            
 
+                        //move to next turn
+                        turn +=1;
+                            
+                    
                         if(player_sockets[0] == sockfd){
                             player_sockets[0] = 0;
+                            
                         }else if(player_sockets[1] == sockfd){
                             player_sockets[1] = 0;
+                            
                         }else{
                             printf("ERROR\n");
+                            
                         }
+                        printf("after end this game:\n");
+                        printf("first player socket:%d\n",player_sockets[0]);
+                        printf("second player socket:%d\n",player_sockets[1]);
                     }else{
                         printf("NNNN");
                     }
                     // printf("\n%s\n\n",curr);
                     
                     //both player are ready  
-                    // get the size of the file
-                    struct stat st;
-                    stat("4_accepted.html", &st);
-                    n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
-                    // send the header first
-                    if (write(sockfd, buff, n) < 0)
-                    {
-                        perror("write");
-                        return false;
-                    }
-                    // send the file
-                    int filefd = open("4_accepted.html", O_RDONLY);
-                    do
-                    {
-                        n = sendfile(sockfd, filefd, NULL, 2048);
-                    }
-                    while (n > 0);
-                    if (n < 0)
-                    {
-                        perror("sendfile");
-                        close(filefd);
-                        return false;
-                    }
-                    close(filefd);
-                }else{
+                    
 
                     bool result;
-                    result = sendhttp("5_discarded.html", sockfd, buff, n);
+                    result = sendhttp("4_accepted.html", sockfd, buff, &n, turn);
                     if(result == false){
+                        printf("false17\n");
                         return false;
                     }
-                    // // get the size of the file
-                    // struct stat st;
-                    // stat("5_discarded.html", &st);
-                    // n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
-                    // // send the header first
-                    // if (write(sockfd, buff, n) < 0)
-                    // {
-                    //     perror("write");
-                    //     return false;
-                    // }
-                    // // send the file
-                    // int filefd = open("5_discarded.html", O_RDONLY);
-                    // do
-                    // {
-                    //     n = sendfile(sockfd, filefd, NULL, 2048);
-                    // }
-                    // while (n > 0);
-                    // if (n < 0)
-                    // {
-                    //     perror("sendfile");
-                    //     close(filefd);
-                    //     return false;
-                    // }
-                    // close(filefd);
+
+                }else{
+                    printf("discard:\n");
+                    printf("first player socket:%d\n",player_sockets[0]);
+                    printf("second player socket:%d\n",player_sockets[1]);
+
+                    bool result;
+                    result = sendhttp("5_discarded.html", sockfd, buff, &n, turn);
+                    if(result == false){
+                        printf("false19\n");
+                        return false;
+                    }
+                   
                 }
             }
         }
         printf("GAMESTATE = %d\n",gamestate);
         printf("first player socket:%d\n",player_sockets[0]);
         printf("second player socket:%d\n",player_sockets[1]);
-    }
-    if (*curr == ' '){
+    }else if (*curr == ' '){
         if (method == GET)
         {   
             bool result;
-            result = sendhttp("1_intro.html", sockfd, buff, n);
+            result = sendhttp("1_intro.html", sockfd, buff, &n, turn);
             if(result == false){
+                printf("false20\n");
                 return false;
             }
             
@@ -563,12 +534,13 @@ static bool handle_http_request(int sockfd){
         else if (method == POST)
         {   
             bool result;
-            result = sendhttp("2_start.html", sockfd, buff, n);
+            result = sendhttp("2_start.html", sockfd, buff, &n, turn);
             
             printf("GAMESTATE = %d\n",gamestate);
             printf("first player socket:%d\n",player_sockets[0]);
             printf("second player socket:%d\n",player_sockets[1]);
             if(result == false){
+                printf("false22\n");
                 return false;
             }
         }
@@ -578,6 +550,7 @@ static bool handle_http_request(int sockfd){
     // send 404
     }else if (write(sockfd, HTTP_404, HTTP_404_LENGTH) < 0){
         perror("write");
+        printf("false23\n");
         return false;
     }
     printf("return true\n");
@@ -684,8 +657,8 @@ int main(int argc, char * argv[])
                     }
                 }
                 // a request is sent from the client
-                else if (!handle_http_request(i))
-                {
+                else if (!handle_http_request(i)){   
+                    printf("CLOSE");
                     close(i);
                     FD_CLR(i, &masterfds);
                 }
