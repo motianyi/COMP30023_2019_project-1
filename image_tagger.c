@@ -46,6 +46,19 @@ typedef enum
     //3 both player are ready
 
     //5 finish
+static void make_string(char words[][100], int length, char* wordstring){
+    
+    int i;
+    for(i = 0; i < length; i++){
+        if(i!=0){
+            strcat(wordstring, ", ");
+        }
+        printf("%s\n",wordstring);
+        printf("%s\n",words[i]);
+        strcat(wordstring, words[i]);
+
+    }
+}
 static char* get_image_name(int turn){
     if(turn == 1){
         return IMAGE_1;
@@ -57,6 +70,7 @@ static char* get_image_name(int turn){
         return IMAGE_4;
     }
 }
+
 
 static bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
     char html[2049];
@@ -118,6 +132,65 @@ static bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
     return true;
 
 }
+
+
+static bool sendhttp_accept(char* filename, int sockfd, char* buff, int turn, char* words_string){
+    char html[2049];
+    // get the size of the file
+    struct stat st;
+    stat(filename, &st);
+    
+    //find the image name of this turn
+    char* img_name = get_image_name(turn);
+
+    // increase file size to accommodate the username
+    long size = 0;
+    size = st.st_size + strlen(img_name)+ strlen(words_string)-2-2;
+    
+    
+    int a;
+    a = sprintf(buff, HTTP_200_FORMAT, size);
+    // send the header first
+    if (write(sockfd, buff, a) < 0)
+    {
+        perror("write");
+        printf("false1\n");
+        return false;
+        
+    }
+
+    
+    // read the content of the HTML file
+    int filefd = open(filename, O_RDONLY);
+    a = read(filefd, buff, 2048);
+    
+    if (a < 0)
+    {
+        perror("read");
+        close(filefd);
+        printf("false2\n");
+        return false;
+    }
+    close(filefd);
+    a = sprintf(html, buff, img_name, words_string);
+
+    if (a < 0)
+    {
+        perror("sprintf get error");
+        close(filefd);
+        printf("false3\n");
+        return false;
+    }
+    // printf("%.*s\n",(int)size, html);
+    if (write(sockfd, html, size) < 0)
+    {
+        perror("write");
+        printf("false4\n");
+        return false;
+    }
+    return true;
+
+}
     
 // static bool sendhttp(char* filename, int sockfd, char* buff, int* n){
     
@@ -147,20 +220,20 @@ static bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
 //     close(filefd);
 // }
 
-static bool game(char* word, int player){
+static bool game(char* word, int player, char words_player1[][100], char words_player2[][100], int* length1, int* length2){
 
     
-    static char words_player1[100][100] = {};
-    static char words_player2[100][100] = {};
-    static int length1 = 0;
-    static int length2 = 0;
+    // static char words_player1[100][100] = {};
+    // static char words_player2[100][100] = {};
+    // static int length1 = 0;
+    // static int length2 = 0;
     int i;
 
-    for(i = 0; i<length1; i++){
+    for(i = 0; i<*length1; i++){
         printf("%s\n", &words_player1[i][0]);
     }
     printf("\nplayer2\n");
-    for(i = 0; i<length2; i++){
+    for(i = 0; i<*length2; i++){
         printf("%s\n", &words_player2[i][0]);
     }
     
@@ -170,29 +243,29 @@ static bool game(char* word, int player){
         bool in_array = false;
 
         //check whether the word is in the array of another player
-        for(i = 0; i<length1; i++){
+        for(i = 0; i<*length1; i++){
             if(strcmp(words_player1[i], word)==0){
                 in_array = true;
             }
         }
         if(in_array == true){
             //reset the array
-            for(i = 0; i<length1; i++){
+            for(i = 0; i<*length1; i++){
                 strcmp(words_player1[i],"");
             }
-            for(i = 0; i<length2; i++){
+            for(i = 0; i<*length2; i++){
                 strcmp(words_player2[i],"");
             }
             //reset the length to 0
-            length1 = 0;
-            length2 = 0;
+            *length1 = 0;
+            *length2 = 0;
             
             return true;
         }else{
             //otherwise add the word into the array
-            strcpy(words_player2[length2], word);
-            length2+=1;
-            printf("length2 is %d\n",length2);
+            strcpy(words_player2[*length2], word);
+            *length2+=1;
+            printf("length2 is %d\n",*length2);
         }
         printf("false5\n");
         return false;
@@ -201,29 +274,29 @@ static bool game(char* word, int player){
         bool in_array = false;
 
         //check whether the word is in the array of another player
-        for(i = 0; i<length2; i++){
+        for(i = 0; i<*length2; i++){
             if(strcmp(words_player2[i], word)==0){
                 in_array = true;
             }
         }
         if(in_array == true){
             //reset the array
-            for(i = 0; i<length2; i++){
+            for(i = 0; i<*length2; i++){
                 strcmp(words_player2[i],"");
             }
-            for(i = 0; i<length1; i++){
+            for(i = 0; i<*length1; i++){
                 strcmp(words_player1[i],"");
             }
             //reset the length to 0
-            length1 = 0;
-            length2 = 0;
+            *length1 = 0;
+            *length2 = 0;
             
             return true;
         }else{
             //otherwise add the word into the array
-            strcpy(words_player1[length1], word);
-            length1+=1;
-            printf("length1 is %d\n",length1);
+            strcpy(words_player1[*length1], word);
+            *length1+=1;
+            printf("length1 is %d\n",*length1);
         }
         printf("false6\n");
         return false;
@@ -236,8 +309,14 @@ static bool game(char* word, int player){
 
 
 static bool handle_http_request(int sockfd){
+
+    static char words_player1[100][100] = {};
+    static char words_player2[100][100] = {};
+    static int length1 = 0;
+    static int length2 = 0;
+
     static int turn = 1;
-            
+    static bool guessed[2] = {true, true};
     static int player_sockets[2] = {0,0};
     static int gamestate = 0;
     // try to read the request
@@ -332,6 +411,8 @@ static bool handle_http_request(int sockfd){
             printf("false12\n");
             return false;
         }
+        printf("false112\n");
+        return false;
         
        
 
@@ -360,8 +441,10 @@ static bool handle_http_request(int sockfd){
                 gamestate = 1;
             }else if(player_sockets[1] == 0 && player_sockets[1] != 0){
                 gamestate = 2;
-            }else if(player_sockets[0] != 0 && player_sockets[1] != 0 && gamestate != 5){
+            }else if(player_sockets[0] != 0 && player_sockets[1] != 0 && guessed[0] == true && guessed[1] == true){
                 gamestate = 3;
+                guessed[0] = false;
+                guessed[1] = false;
             }else{
                 printf("ERROR, start");
             }
@@ -398,8 +481,12 @@ static bool handle_http_request(int sockfd){
                         printf("false14\n");
                         return false;
                     }
+                    printf("false114\n");
+                    return false;
                   
-                }else if(gamestate == 5){
+                }else if(gamestate == 5 && ((player_sockets[0] == sockfd && guessed [0] == false) || (player_sockets[1] == sockfd && guessed [1] == false))){
+                    printf("NEXT\n");
+                    printf("gamestate NEXT is %d", gamestate);
 
 
                     bool result;
@@ -411,8 +498,10 @@ static bool handle_http_request(int sockfd){
                                         
                     if(player_sockets[0] == sockfd){
                         player_sockets[0] = 0;
+                        guessed[0] = true;
                     }else if(player_sockets[1] == sockfd){
                         player_sockets[1] = 0;
+                        guessed[1] = true;
                     }else{
                         printf("ERROR\n");
                     }
@@ -457,7 +546,8 @@ static bool handle_http_request(int sockfd){
                     }else if(sockfd == player_sockets[1]){
                         player = 2;
                     }
-                    if(game(word, player) == true){
+                    if(game(word, player,words_player1, words_player2,&length1,&length2) == true){
+                       
                         //set gamestate to finish game
                         gamestate = 5;
                         printf("YYY");
@@ -472,13 +562,16 @@ static bool handle_http_request(int sockfd){
 
                         //move to next turn
                         turn +=1;
+                        
                             
                     
                         if(player_sockets[0] == sockfd){
                             player_sockets[0] = 0;
+                            guessed[0] = true;
                             
                         }else if(player_sockets[1] == sockfd){
                             player_sockets[1] = 0;
+                            guessed[1] = true;
                             
                         }else{
                             printf("ERROR\n");
@@ -493,10 +586,21 @@ static bool handle_http_request(int sockfd){
                     // printf("\n%s\n\n",curr);
                     
                     //both player are ready  
+
+                    char wordstring[2049] = "";
+                    if(player_sockets[0] == sockfd){
+                        make_string(words_player1, length1, wordstring);
+                        printf("WWW%s\n", wordstring);
+                    }else if (player_sockets[1] == sockfd){
+                        make_string(words_player2, length2, wordstring);
+                        printf("WWW%s\n", wordstring);
+                    }else{
+                        printf("ERROR!!!");
+                    }
                     
 
                     bool result;
-                    result = sendhttp("4_accepted.html", sockfd, buff, &n, turn);
+                    result = sendhttp_accept("4_accepted.html", sockfd, buff, turn, wordstring);
                     if(result == false){
                         printf("false17\n");
                         return false;
