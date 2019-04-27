@@ -291,6 +291,7 @@ static bool handle_http_request(int sockfd){
     static char words_player2[100][100] = {};
     static int length1 = 0;
     static int length2 = 0;
+    static int  isquit = 0;
 
     static int turn = 1;
     static bool guessed[2] = {true, true};
@@ -372,15 +373,14 @@ static bool handle_http_request(int sockfd){
         
         if(player_sockets[0] == sockfd){
             //player 1 quit game
-            gamestate = -1;
             player_sockets[0] = 0;
         }else if(player_sockets[1] == sockfd){
             //player 2 quit game
-            gamestate = -2;
             player_sockets[1] = 0;
         }else{
             printf("error");
         }
+        isquit += 1;
 
         bool result;
         result = sendhttp("7_gameover.html", sockfd, buff, &n, turn);
@@ -388,20 +388,16 @@ static bool handle_http_request(int sockfd){
             printf("false12\n");
             return false;
         }
-        printf("false112\n");
-        return false;
-        
-       
 
-        // printf("GAMESTATE = %d\n",gamestate);
+        return false;
         // printf("first player socket:%d\n",player_sockets[0]);
         // printf("second player socket:%d\n",player_sockets[1]);
 
-
     }else if (strncmp(curr, "?start=Start", 12) == 0){
         // assume the only valid request URI is "/" but it can be modified to accept more files
-        printf("START = START%d\n",sockfd);
+        
         if (method == GET){
+            //identify the socket
             if(player_sockets[0] == 0){
                 player_sockets[0] = sockfd;
             }else if(player_sockets[1] == 0){
@@ -410,10 +406,9 @@ static bool handle_http_request(int sockfd){
                 printf("both sockets are allocated, is it second round?\n");
             }
 
-            printf("first player socket:%d\n",player_sockets[0]);
-            printf("second player socket:%d\n",player_sockets[1]);
+            printf("GGGGGGGGGGGGGGgamestate = %d\n",gamestate);
 
-
+            //find the state
             if(player_sockets[0] != 0 && player_sockets[1] == 0){
                 gamestate = 1;
             }else if(player_sockets[1] == 0 && player_sockets[1] != 0){
@@ -426,7 +421,6 @@ static bool handle_http_request(int sockfd){
                 printf("ERROR, start");
             }
 
-            
             bool result;
             result = sendhttp("3_first_turn.html", sockfd, buff, &n, turn);
             if(result == false){
@@ -434,25 +428,23 @@ static bool handle_http_request(int sockfd){
                 return false;
             }
     
-                      
         }else if (method == POST){
             
             if (strstr(curr, "guess=Guess") != NULL){
-                printf("GUESS_SOCKET=%d\n",sockfd);
-                
-                
-                if(gamestate < 0){
+
+                //another player has quitted, thus quit the game                
+                if(isquit%2 == 1){
                     if(player_sockets[0] == sockfd){
                         //player 1 quit game
-                        gamestate = -1;
                         player_sockets[0] = 0;
                     }else if(player_sockets[1] == sockfd){
                         //player 2 quit game
-                        gamestate = -2;
                         player_sockets[1] = 0;
                     }else{
                         printf("error");
                     }
+
+                    //send the gameover page
                     bool result;
                     result = sendhttp("7_gameover.html", sockfd, buff, &n, turn);
                     if(result == false){
@@ -460,13 +452,13 @@ static bool handle_http_request(int sockfd){
                         return false;
                     }
                     printf("false114\n");
+
+                    //increase the isquit
+                    isquit +=1;
                     return false;
-                  
+
+                //one player guessed, thus another player endgame
                 }else if(gamestate == 5 && ((player_sockets[0] == sockfd && guessed [0] == false) || (player_sockets[1] == sockfd && guessed [1] == false))){
-                    printf("NEXT\n");
-                    printf("gamestate NEXT is %d", gamestate);
-
-
                     bool result;
                     result = sendhttp("6_endgame.html", sockfd, buff, &n, turn);
                     if(result == false){
@@ -483,11 +475,8 @@ static bool handle_http_request(int sockfd){
                     }else{
                         printf("ERROR\n");
                     }
-                    //both player are ready for next turn
-                   
-                    printf("after end this game:\n");
-                    printf("first player socket:%d\n",player_sockets[0]);
-                    printf("second player socket:%d\n",player_sockets[1]);     
+
+                //both player are ready for guessing   
                 }else if(gamestate == 3){
                     if(player_sockets[0] == 0 && player_sockets[1] != 0 && player_sockets[1]!= sockfd){
                         player_sockets[0] = sockfd;
@@ -496,27 +485,12 @@ static bool handle_http_request(int sockfd){
                     }else{
                         printf("both have sockets");
                     }
-                    char* guess = strstr(curr, "guess=Guess");
-                    char* keyword = strstr(curr, "keyword=");
-                    // printf("%p", guess);
-                    // printf("%p", keyword);
-
-                    //skip the string "keyword="
-                    char* x = keyword+8;
-                    int i = 0;
                     
                     char word[100] = {};
-                    // for(i = 0; i<10; i++){
-                    while(x != guess){
-                        
-                        // printf("%p\n",x);
-                        // printf("%c\n",*x);
-                        word[i] = *x;
-                        i++;
-                        x++;
-                    }
-                    word[i-1] = '\0';
-                    printf("%s\n",word);
+
+                    //extract the gussing word
+                    get_guessing_word(curr, word);
+
 
                     int player = 0;
                     if(sockfd == player_sockets[0]){
@@ -524,13 +498,13 @@ static bool handle_http_request(int sockfd){
                     }else if(sockfd == player_sockets[1]){
                         player = 2;
                     }
+                    
+                    //one player guessed the word submitted by another player
                     if(game(word, player,words_player1, words_player2,&length1,&length2) == true){
                        
                         //set gamestate to finish game
                         gamestate = 5;
-                        printf("YYY");
-                        
-                     
+                      
                         bool result;
                         result = sendhttp("6_endgame.html", sockfd, buff, &n, turn);
                         if(result == false){
@@ -538,11 +512,9 @@ static bool handle_http_request(int sockfd){
                             return false;
                         }
 
-                        //move to next turn
+                        //move to next turn(next image)
                         turn +=1;
-                        
-                            
-                    
+
                         if(player_sockets[0] == sockfd){
                             player_sockets[0] = 0;
                             guessed[0] = true;
@@ -555,9 +527,9 @@ static bool handle_http_request(int sockfd){
                             printf("ERROR\n");
                             
                         }
-                        printf("after end this game:\n");
-                        printf("first player socket:%d\n",player_sockets[0]);
-                        printf("second player socket:%d\n",player_sockets[1]);
+                        // printf("after end this game:\n");
+                        // printf("first player socket:%d\n",player_sockets[0]);
+                        // printf("second player socket:%d\n",player_sockets[1]);
                     }else{
                         printf("NNNN");
                     }
@@ -575,8 +547,7 @@ static bool handle_http_request(int sockfd){
                     }else{
                         printf("ERROR!!!");
                     }
-                    
-
+                
                     bool result;
                     result = sendhttp_2str("4_accepted.html", sockfd, buff, turn, wordstring);
                     if(result == false){
@@ -585,9 +556,9 @@ static bool handle_http_request(int sockfd){
                     }
 
                 }else{
-                    printf("discard:\n");
-                    printf("first player socket:%d\n",player_sockets[0]);
-                    printf("second player socket:%d\n",player_sockets[1]);
+                    // printf("discard:\n");
+                    // printf("first player socket:%d\n",player_sockets[0]);
+                    // printf("second player socket:%d\n",player_sockets[1]);
 
                     bool result;
                     result = sendhttp("5_discarded.html", sockfd, buff, &n, turn);
@@ -599,12 +570,13 @@ static bool handle_http_request(int sockfd){
                 }
             }
         }
-        printf("GAMESTATE = %d\n",gamestate);
-        printf("first player socket:%d\n",player_sockets[0]);
-        printf("second player socket:%d\n",player_sockets[1]);
+        // printf("GAMESTATE = %d\n",gamestate);
+        // printf("first player socket:%d\n",player_sockets[0]);
+        // printf("second player socket:%d\n",player_sockets[1]);
     }else if (*curr == ' '){
-        if (method == GET)
-        {   
+
+        //simply return the initial html
+        if (method == GET){   
             bool result;
             result = sendhttp("1_intro.html", sockfd, buff, &n, turn);
             if(result == false){
@@ -613,8 +585,9 @@ static bool handle_http_request(int sockfd){
             }
             
         }
-        else if (method == POST)
-        {   
+        else if (method == POST){ 
+
+            //finf the username
             char* username = strstr(curr, "user=")+5;
             int username_length = strlen(username);
             printf("USERNAME: %s\n",username);
@@ -623,9 +596,9 @@ static bool handle_http_request(int sockfd){
             bool result;
             result = sendhttp_2str("2_start.html", sockfd, buff, turn, username);
             
-            printf("GAMESTATE = %d\n",gamestate);
-            printf("first player socket:%d\n",player_sockets[0]);
-            printf("second player socket:%d\n",player_sockets[1]);
+            // printf("GAMESTATE = %d\n",gamestate);
+            // printf("first player socket:%d\n",player_sockets[0]);
+            // printf("second player socket:%d\n",player_sockets[1]);
             if(result == false){
                 printf("false22\n");
                 return false;
@@ -756,4 +729,20 @@ int main(int argc, char * argv[])
 }
 
 
-
+void get_guessing_word(char* curr, char* word){
+    //find the address of string
+    char* guess = strstr(curr, "guess=Guess");
+    char* keyword = strstr(curr, "keyword=");
+    
+    //skip the string "keyword=",
+    char* x = keyword+8;
+    int i = 0;
+    
+    //iterate through, store the word
+    while(x != guess){
+        word[i] = *x;
+        i++;
+        x++;
+    }
+    word[i-1] = '\0';
+}
