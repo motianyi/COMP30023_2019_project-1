@@ -1,6 +1,9 @@
+
 /*
 ** http-server.c
 */
+
+
 
 #include <errno.h>
 #include <stdbool.h>
@@ -59,6 +62,7 @@ static void make_string(char words[][100], int length, char* wordstring){
 
     }
 }
+
 static char* get_image_name(int turn){
     if(turn == 1){
         return IMAGE_1;
@@ -134,7 +138,7 @@ static bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
 }
 
 
-static bool sendhttp_accept(char* filename, int sockfd, char* buff, int turn, char* words_string){
+static bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words_string){
     char html[2049];
     // get the size of the file
     struct stat st;
@@ -192,33 +196,6 @@ static bool sendhttp_accept(char* filename, int sockfd, char* buff, int turn, ch
 
 }
     
-// static bool sendhttp(char* filename, int sockfd, char* buff, int* n){
-    
-//     // get the size of the file
-//     struct stat st;
-//     stat(filename, &st);
-//     *n = sprintf(buff, HTTP_200_FORMAT, st.st_size);
-//     // send the header first
-//     if (write(sockfd, buff, *n) < 0)
-//     {
-//         perror("write");
-//         return false;
-//     }
-//     // send the file
-//     int filefd = open(filename, O_RDONLY);
-//     do
-//     {
-//         *n = sendfile(sockfd, filefd, NULL, 2048);
-//     }
-//     while (*n > 0);
-//     if (*n < 0)
-//     {
-//         perror("sendfile");
-//         close(filefd);
-//         return false;
-//     }
-//     close(filefd);
-// }
 
 static bool game(char* word, int player, char words_player1[][100], char words_player2[][100], int* length1, int* length2){
 
@@ -251,10 +228,10 @@ static bool game(char* word, int player, char words_player1[][100], char words_p
         if(in_array == true){
             //reset the array
             for(i = 0; i<*length1; i++){
-                strcmp(words_player1[i],"");
+                strcpy(words_player1[i],"");
             }
             for(i = 0; i<*length2; i++){
-                strcmp(words_player2[i],"");
+                strcpy(words_player2[i],"");
             }
             //reset the length to 0
             *length1 = 0;
@@ -449,6 +426,7 @@ static bool handle_http_request(int sockfd){
                 printf("ERROR, start");
             }
 
+            
             bool result;
             result = sendhttp("3_first_turn.html", sockfd, buff, &n, turn);
             if(result == false){
@@ -600,7 +578,7 @@ static bool handle_http_request(int sockfd){
                     
 
                     bool result;
-                    result = sendhttp_accept("4_accepted.html", sockfd, buff, turn, wordstring);
+                    result = sendhttp_2str("4_accepted.html", sockfd, buff, turn, wordstring);
                     if(result == false){
                         printf("false17\n");
                         return false;
@@ -637,8 +615,13 @@ static bool handle_http_request(int sockfd){
         }
         else if (method == POST)
         {   
+            char* username = strstr(curr, "user=")+5;
+            int username_length = strlen(username);
+            printf("USERNAME: %s\n",username);
+            
+            
             bool result;
-            result = sendhttp("2_start.html", sockfd, buff, &n, turn);
+            result = sendhttp_2str("2_start.html", sockfd, buff, turn, username);
             
             printf("GAMESTATE = %d\n",gamestate);
             printf("first player socket:%d\n",player_sockets[0]);
