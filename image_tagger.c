@@ -2,7 +2,7 @@
 /*
 ** http-server.c
 */
-
+#include "sendhttp.h"
 
 
 #include <errno.h>
@@ -23,19 +23,19 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// constants
-static char const * const HTTP_200_FORMAT = "HTTP/1.1 200 OK\r\n\
-Content-Type: text/html\r\n\
-Content-Length: %ld\r\n\r\n";
-static char const * const HTTP_400 = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n";
-static int const HTTP_400_LENGTH = 47;
-static char const * const HTTP_404 = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
-static int const HTTP_404_LENGTH = 45;
+// // constants
+// static char const * const HTTP_200_FORMAT = "HTTP/1.1 200 OK\r\n\
+// Content-Type: text/html\r\n\
+// Content-Length: %ld\r\n\r\n";
+// static char const * const HTTP_400 = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n";
+// static int const HTTP_400_LENGTH = 47;
+// static char const * const HTTP_404 = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+// static int const HTTP_404_LENGTH = 45;
 
-static char* IMAGE_1 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-1.jpg";
-static char* IMAGE_2 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-2.jpg";
-static char* IMAGE_3 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-3.jpg";
-static char* IMAGE_4 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-4.jpg";
+// static char* IMAGE_1 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-1.jpg";
+// static char* IMAGE_2 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-2.jpg";
+// static char* IMAGE_3 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-3.jpg";
+// static char* IMAGE_4 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-4.jpg";
 
 // represents the types of method
 typedef enum
@@ -63,138 +63,138 @@ static void make_string(char words[][100], int length, char* wordstring){
     }
 }
 
-static char* get_image_name(int turn){
-    if(turn == 1){
-        return IMAGE_1;
-    }else if(turn == 2){
-        return IMAGE_2;
-    }else if(turn == 3){
-        return IMAGE_3;
-    }else{
-        return IMAGE_4;
-    }
-}
+// static char* get_image_name(int turn){
+//     if(turn == 1){
+//         return IMAGE_1;
+//     }else if(turn == 2){
+//         return IMAGE_2;
+//     }else if(turn == 3){
+//         return IMAGE_3;
+//     }else{
+//         return IMAGE_4;
+//     }
+// }
 
 
-static bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
-    char html[2049];
-    // get the size of the file
-    struct stat st;
-    stat(filename, &st);
+// static bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
+//     char html[2049];
+//     // get the size of the file
+//     struct stat st;
+//     stat(filename, &st);
     
-    //find the image name of this turn
-    char* img_name = get_image_name(turn);
+//     //find the image name of this turn
+//     char* img_name = get_image_name(turn);
 
-    // increase file size to accommodate the username
-    long size = 0;
-    if(strcmp(filename, "6_endgame.html")== 0 || strcmp(filename, "7_gameover.html")==0){
-        size = st.st_size;
-    }else{
-        size = st.st_size + strlen(img_name)-2;
-    }    
-    // long size = st.st_size + strlen(img_name)-2;
-    int a;
-    a = sprintf(buff, HTTP_200_FORMAT, size);
-    // send the header first
-    if (write(sockfd, buff, a) < 0)
-    {
-        perror("write");
-        printf("false1\n");
-        return false;
+//     // increase file size to accommodate the username
+//     long size = 0;
+//     if(strcmp(filename, "6_endgame.html")== 0 || strcmp(filename, "7_gameover.html")==0){
+//         size = st.st_size;
+//     }else{
+//         size = st.st_size + strlen(img_name)-2;
+//     }    
+//     // long size = st.st_size + strlen(img_name)-2;
+//     int a;
+//     a = sprintf(buff, HTTP_200_FORMAT, size);
+//     // send the header first
+//     if (write(sockfd, buff, a) < 0)
+//     {
+//         perror("write");
+//         printf("false1\n");
+//         return false;
         
-    }
+//     }
 
     
-    // read the content of the HTML file
-    int filefd = open(filename, O_RDONLY);
-    a = read(filefd, buff, 2048);
+//     // read the content of the HTML file
+//     int filefd = open(filename, O_RDONLY);
+//     a = read(filefd, buff, 2048);
     
-    if (a < 0)
-    {
-        perror("read");
-        close(filefd);
-        printf("false2\n");
-        return false;
-    }
-    close(filefd);
-    a = sprintf(html, buff, img_name);
+//     if (a < 0)
+//     {
+//         perror("read");
+//         close(filefd);
+//         printf("false2\n");
+//         return false;
+//     }
+//     close(filefd);
+//     a = sprintf(html, buff, img_name);
 
-    if (a < 0)
-    {
-        perror("sprintf get error");
-        close(filefd);
-        printf("false3\n");
-        return false;
-    }
-    // printf("%.*s\n",(int)size, html);
-    if (write(sockfd, html, size) < 0)
-    {
-        perror("write");
-        printf("false4\n");
-        return false;
-    }
-    return true;
+//     if (a < 0)
+//     {
+//         perror("sprintf get error");
+//         close(filefd);
+//         printf("false3\n");
+//         return false;
+//     }
+//     // printf("%.*s\n",(int)size, html);
+//     if (write(sockfd, html, size) < 0)
+//     {
+//         perror("write");
+//         printf("false4\n");
+//         return false;
+//     }
+//     return true;
 
-}
+// }
 
 
-static bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words_string){
-    char html[2049];
-    // get the size of the file
-    struct stat st;
-    stat(filename, &st);
+// static bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words_string){
+//     char html[2049];
+//     // get the size of the file
+//     struct stat st;
+//     stat(filename, &st);
     
-    //find the image name of this turn
-    char* img_name = get_image_name(turn);
+//     //find the image name of this turn
+//     char* img_name = get_image_name(turn);
 
-    // increase file size to accommodate the username
-    long size = 0;
-    size = st.st_size + strlen(img_name)+ strlen(words_string)-2-2;
+//     // increase file size to accommodate the username
+//     long size = 0;
+//     size = st.st_size + strlen(img_name)+ strlen(words_string)-2-2;
     
     
-    int a;
-    a = sprintf(buff, HTTP_200_FORMAT, size);
-    // send the header first
-    if (write(sockfd, buff, a) < 0)
-    {
-        perror("write");
-        printf("false1\n");
-        return false;
+//     int a;
+//     a = sprintf(buff, HTTP_200_FORMAT, size);
+//     // send the header first
+//     if (write(sockfd, buff, a) < 0)
+//     {
+//         perror("write");
+//         printf("false1\n");
+//         return false;
         
-    }
+//     }
 
     
-    // read the content of the HTML file
-    int filefd = open(filename, O_RDONLY);
-    a = read(filefd, buff, 2048);
+//     // read the content of the HTML file
+//     int filefd = open(filename, O_RDONLY);
+//     a = read(filefd, buff, 2048);
     
-    if (a < 0)
-    {
-        perror("read");
-        close(filefd);
-        printf("false2\n");
-        return false;
-    }
-    close(filefd);
-    a = sprintf(html, buff, img_name, words_string);
+//     if (a < 0)
+//     {
+//         perror("read");
+//         close(filefd);
+//         printf("false2\n");
+//         return false;
+//     }
+//     close(filefd);
+//     a = sprintf(html, buff, img_name, words_string);
 
-    if (a < 0)
-    {
-        perror("sprintf get error");
-        close(filefd);
-        printf("false3\n");
-        return false;
-    }
-    // printf("%.*s\n",(int)size, html);
-    if (write(sockfd, html, size) < 0)
-    {
-        perror("write");
-        printf("false4\n");
-        return false;
-    }
-    return true;
+//     if (a < 0)
+//     {
+//         perror("sprintf get error");
+//         close(filefd);
+//         printf("false3\n");
+//         return false;
+//     }
+//     // printf("%.*s\n",(int)size, html);
+//     if (write(sockfd, html, size) < 0)
+//     {
+//         perror("write");
+//         printf("false4\n");
+//         return false;
+//     }
+//     return true;
 
-}
+// }
     
 
 static bool game(char* word, int player, char words_player1[][100], char words_player2[][100], int* length1, int* length2){

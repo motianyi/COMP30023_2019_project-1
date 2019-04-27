@@ -1,7 +1,40 @@
 #include "sendhttp.h"
 
+#include <errno.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-static bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <strings.h>
+#include <sys/select.h>
+#include <sys/sendfile.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+
+// constants
+
+char* get_image_name(int turn){
+    if(turn == 1){
+        return IMAGE_1;
+    }else if(turn == 2){
+        return IMAGE_2;
+    }else if(turn == 3){
+        return IMAGE_3;
+    }else{
+        return IMAGE_4;
+    }
+}
+
+
+bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
     char html[2049];
     // get the size of the file
     struct stat st;
@@ -63,7 +96,7 @@ static bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
 }
 
 
-static bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words_string){
+bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words_string){
     char html[2049];
     // get the size of the file
     struct stat st;
@@ -119,16 +152,4 @@ static bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char
     }
     return true;
 
-}
-
-static char* get_image_name(int turn){
-    if(turn == 1){
-        return IMAGE_1;
-    }else if(turn == 2){
-        return IMAGE_2;
-    }else if(turn == 3){
-        return IMAGE_3;
-    }else{
-        return IMAGE_4;
-    }
 }
