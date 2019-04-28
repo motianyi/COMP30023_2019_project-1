@@ -153,3 +153,51 @@ bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words
     return true;
 
 }
+
+
+
+
+bool sendimage(int sockfd){
+    char image[2049];
+    // get the size of the file
+    struct stat st;
+    stat("favicon.ico", &st);
+    
+    // increase file size to accommodate the username
+    long size = 0;
+    size = st.st_size;
+    
+    int a;
+    a = sprintf(image, HTTP_200_FORMAT, size);
+    // send the image header first
+    if (write(sockfd, image, a) < 0)
+    {
+        perror("write");
+        printf("false1\n");
+        return false;
+        
+    }
+
+    
+    // read the content of the image (favicon.ico) file
+    int filefd = open("favicon.ico", O_RDONLY);
+    a = read(filefd, image, 2048);
+    
+    if (a < 0)
+    {
+        perror("read");
+        close(filefd);
+        printf("false2\n");
+        return false;
+    }
+    close(filefd);
+    
+    if (write(sockfd, image, size) < 0)
+    {
+        perror("write");
+        printf("false4\n");
+        return false;
+    }
+    return true;
+
+}

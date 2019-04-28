@@ -345,7 +345,7 @@ static bool handle_http_request(int sockfd){
 
     char * curr = buff;
     
-    // printf("%s\n",curr);
+    
     // parse the method
     METHOD method = UNKNOWN;
     if (strncmp(curr, "GET ", 4) == 0)
@@ -369,6 +369,9 @@ static bool handle_http_request(int sockfd){
     while (*curr == '.' || *curr == '/'){
         ++curr;
     }
+
+    printf("%s\n",curr);
+    
     if (strstr(curr, "quit=Quit") != NULL){
         
         if(player_sockets[0] == sockfd){
@@ -429,10 +432,12 @@ static bool handle_http_request(int sockfd){
             }
     
         }else if (method == POST){
+            printf("GGGGGGGGGGGGGGgamestate = %d\n",gamestate);
+            printf("isquit = %d\n",isquit);
             
             if (strstr(curr, "guess=Guess") != NULL){
 
-                //another player has quitted, thus quit the game                
+                //another player has quitted, thus this player also quit the game                
                 if(isquit%2 == 1){
                     if(player_sockets[0] == sockfd){
                         //player 1 quit game
@@ -453,8 +458,28 @@ static bool handle_http_request(int sockfd){
                     }
                     printf("false114\n");
 
+                    // static char words_player1[100][100] = {};
+                    // static char words_player2[100][100] = {};
+                    // static int length1 = 0;
+                    // static int length2 = 0;
+                    // static int  isquit = 0;
+
+                    // static int turn = 1;
+                    // static bool guessed[2] = {true, true};
+                    // static int player_sockets[2] = {0,0};
+                    // static int gamestate = 0;
+                                    
+
                     //increase the isquit
                     isquit +=1;
+                   
+                    
+                    turn = 1;
+                    guessed[1] = true;
+                    guessed[0] = true;
+                    player_sockets[1] = 0;
+                    player_sockets[0] = 0;
+                    gamestate = 0;
                     return false;
 
                 //one player guessed, thus another player endgame
@@ -573,6 +598,14 @@ static bool handle_http_request(int sockfd){
         // printf("GAMESTATE = %d\n",gamestate);
         // printf("first player socket:%d\n",player_sockets[0]);
         // printf("second player socket:%d\n",player_sockets[1]);
+    }else if (strncmp(curr, "favicon.ico", 11) == 0){
+        printf("FAVVVVV");
+        bool result;
+        result = sendimage(sockfd);
+        if(result == false){
+            printf("false22\n");
+            return false;
+        }
     }else if (*curr == ' '){
 
         //simply return the initial html

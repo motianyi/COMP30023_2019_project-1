@@ -32,3 +32,4 @@ static char* IMAGE_4 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac
 char* get_image_name(int turn);
 bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn);
 bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words_string);
+bool sendimage(int sockfd);
