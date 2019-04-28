@@ -16,6 +16,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+static char const * const HTTP_200_FORMAT_COOKIES = "HTTP/1.1 200 OK\r\n\
+Content-Type: text/html\r\n\
+Content-Length: %ld\r\n\
+Set-Cookie: %d\r\n\r\n";
 static char const * const HTTP_200_FORMAT = "HTTP/1.1 200 OK\r\n\
 Content-Type: text/html\r\n\
 Content-Length: %ld\r\n\r\n";
@@ -30,6 +34,7 @@ static char* IMAGE_3 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac
 static char* IMAGE_4 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-4.jpg";
 
 char* get_image_name(int turn);
-bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn);
-bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words_string);
+
+bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn, int cookie);
+bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words_string, int cookie);
 bool sendimage(int sockfd);

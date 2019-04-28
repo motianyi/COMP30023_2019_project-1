@@ -34,7 +34,7 @@ char* get_image_name(int turn){
 }
 
 
-bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
+bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn, int cookie){
     char html[2049];
     // get the size of the file
     struct stat st;
@@ -52,7 +52,7 @@ bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
     }    
     // long size = st.st_size + strlen(img_name)-2;
     int a;
-    a = sprintf(buff, HTTP_200_FORMAT, size);
+    a = sprintf(buff, HTTP_200_FORMAT_COOKIES, size, cookie);
     // send the header first
     if (write(sockfd, buff, a) < 0)
     {
@@ -96,7 +96,7 @@ bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn){
 }
 
 
-bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words_string){
+bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words_string, int cookie){
     char html[2049];
     // get the size of the file
     struct stat st;
@@ -111,7 +111,7 @@ bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words
     
     
     int a;
-    a = sprintf(buff, HTTP_200_FORMAT, size);
+    a = sprintf(buff, HTTP_200_FORMAT_COOKIES, size, cookie);
     // send the header first
     if (write(sockfd, buff, a) < 0)
     {
