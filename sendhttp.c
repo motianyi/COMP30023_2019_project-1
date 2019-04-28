@@ -19,6 +19,14 @@
 #include <unistd.h>
 
 
+
+static char* IMAGE_1 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-1.jpg";
+static char* IMAGE_2 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-2.jpg";
+static char* IMAGE_3 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-3.jpg";
+static char* IMAGE_4 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-4.jpg";
+
+
+
 // constants
 
 char* get_image_name(int turn){
@@ -157,7 +165,7 @@ bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words
 
 
 
-bool sendimage(int sockfd){
+bool sendimage(int sockfd, int cookie){
     char image[2049];
     // get the size of the file
     struct stat st;
@@ -168,7 +176,7 @@ bool sendimage(int sockfd){
     size = st.st_size;
     
     int a;
-    a = sprintf(image, HTTP_200_FORMAT, size);
+    a = sprintf(image, HTTP_200_FORMAT_COOKIES, size, cookie);
     // send the image header first
     if (write(sockfd, image, a) < 0)
     {
