@@ -371,7 +371,7 @@ static bool handle_http_request(int sockfd){
     }
 
     printf("%s\n",curr);
-    
+
     if (strstr(curr, "quit=Quit") != NULL){
         
         if(player_sockets[0] == sockfd){
@@ -423,6 +423,7 @@ static bool handle_http_request(int sockfd){
             }else{
                 printf("ERROR, start");
             }
+            printf("After:GGGGGGGGGGGGGGgamestate = %d\n",gamestate);
 
             bool result;
             result = sendhttp("3_first_turn.html", sockfd, buff, &n, turn);
