@@ -298,7 +298,7 @@ static bool handle_http_request(int sockfd){
 
     static int turn = 1;
     static bool guessed[2] = {true, true};
-    // static int player_sockets[2] = {0,0};
+    static int player_sockets[2] = {0,0};
     static int gamestate = 0;
     
     static int player_cookies[2] = {0, 0};
@@ -324,7 +324,9 @@ static bool handle_http_request(int sockfd){
         return false;
     }
 
- 
+    printf("first player socket:%d\n",player_sockets[0]);
+    printf("second player socket:%d\n",player_sockets[1]);
+
     // terminate the string
     buff[n] = 0;
 
@@ -379,25 +381,15 @@ static bool handle_http_request(int sockfd){
     if (strstr(curr, "quit=Quit") != NULL){
         
         
-        // if(player_sockets[0] == sockfd){
-        //     //player 1 quit game
-        //     player_sockets[0] = 0;
-        // }else if(player_sockets[1] == sockfd){
-        //     //player 2 quit game
-        //     player_sockets[1] = 0;
-        // }else{
-        //     printf("error");
-        // }
-         if(player_cookies[0] == this_cookie){
+        if(player_sockets[0] == sockfd){
             //player 1 quit game
-            player_cookies[0] = 0;
-        }else if(player_cookies[1] == this_cookie){
+            player_sockets[0] = 0;
+        }else if(player_sockets[1] == sockfd){
             //player 2 quit game
-            player_cookies[1] = 0;
+            player_sockets[1] = 0;
         }else{
             printf("error");
         }
-
         isquit += 1;
 
         bool result;
@@ -416,43 +408,22 @@ static bool handle_http_request(int sockfd){
         
         if (method == GET){
             //identify the socket
-            // if(player_sockets[0] == 0){
-            //     player_sockets[0] = sockfd;
-            // }else if(player_sockets[1] == 0){
-            //     player_sockets[1] = sockfd;
-            // }else{
-            //     printf("both sockets are allocated, is it second round?\n");
-            // }
-
-            if(player_cookies[0] == 0){
-                player_cookies[0] = this_cookie;
-            }else if(player_cookies[1] == 0){
-                player_cookies[1] = this_cookie;
+            if(player_sockets[0] == 0){
+                player_sockets[0] = sockfd;
+            }else if(player_sockets[1] == 0){
+                player_sockets[1] = sockfd;
             }else{
-                printf("WTF happened, is it second round?\n");
+                printf("both sockets are allocated, is it second round?\n");
             }
 
             printf("GGGGGGGGGGGGGGgamestate = %d\n",gamestate);
 
             //find the state
-
-            // if(player_sockets[0] != 0 && player_sockets[1] == 0){
-            //     gamestate = 1;
-            // }else if(player_sockets[1] == 0 && player_sockets[1] != 0){
-            //     gamestate = 2;
-            // }else if(player_sockets[0] != 0 && player_sockets[1] != 0 && guessed[0] == true && guessed[1] == true){
-            //     gamestate = 3;
-            //     guessed[0] = false;
-            //     guessed[1] = false;
-            // }else{
-            //     printf("ERROR, start");
-            // }
-
-            if(player_cookies[0] != 0 && player_cookies[1] == 0){
+            if(player_sockets[0] != 0 && player_sockets[1] == 0){
                 gamestate = 1;
-            }else if(player_cookies[1] == 0 && player_cookies[1] != 0){
+            }else if(player_sockets[1] == 0 && player_sockets[1] != 0){
                 gamestate = 2;
-            }else if(player_cookies[0] != 0 && player_cookies[1] != 0 && guessed[0] == true && guessed[1] == true){
+            }else if(player_sockets[0] != 0 && player_sockets[1] != 0 && guessed[0] == true && guessed[1] == true){
                 gamestate = 3;
                 guessed[0] = false;
                 guessed[1] = false;
@@ -467,8 +438,8 @@ static bool handle_http_request(int sockfd){
                 printf("false13\n");
                 return false;
             }
-            // printf("first player socket:%d\n",player_sockets[0]);
-            // printf("second player socket:%d\n",player_sockets[1]);
+            printf("first player socket:%d\n",player_sockets[0]);
+            printf("second player socket:%d\n",player_sockets[1]);
     
         }else if (method == POST){
             printf("GGGGGGGGGGGGGGgamestate = %d\n",gamestate);
@@ -478,22 +449,12 @@ static bool handle_http_request(int sockfd){
 
                 //another player has quitted, thus this player also quit the game                
                 if(isquit%2 == 1){
-                    // if(player_sockets[0] == sockfd){
-                    //     //player 1 quit game
-                    //     player_sockets[0] = 0;
-                    // }else if(player_sockets[1] == sockfd){
-                    //     //player 2 quit game
-                    //     player_sockets[1] = 0;
-                    // }else{
-                    //     printf("error");
-                    // }
-
-                    if(player_cookies[0] == player_cookies){
+                    if(player_sockets[0] == sockfd){
                         //player 1 quit game
-                        player_cookies[0] = 0;
-                    }else if(player_cookies[1] == player_cookies){
+                        player_sockets[0] = 0;
+                    }else if(player_sockets[1] == sockfd){
                         //player 2 quit game
-                        player_cookies[1] = 0;
+                        player_sockets[1] = 0;
                     }else{
                         printf("error");
                     }
@@ -526,13 +487,13 @@ static bool handle_http_request(int sockfd){
                     turn = 1;
                     guessed[1] = true;
                     guessed[0] = true;
-                    player_cookies[1] = 0;
-                    player_cookies[0] = 0;
+                    player_sockets[1] = 0;
+                    player_sockets[0] = 0;
                     gamestate = 0;
                     return false;
 
                 //one player guessed, thus another player endgame
-                }else if(gamestate == 5 && ((player_cookies[0] == this_cookie && guessed [0] == false) || (player_cookies[1] == this_cookie && guessed [1] == false))){
+                }else if(gamestate == 5 && ((player_sockets[0] == sockfd && guessed [0] == false) || (player_sockets[1] == sockfd && guessed [1] == false))){
                     bool result;
                     result = sendhttp("6_endgame.html", sockfd, buff, &n, turn, this_cookie);
                     if(result == false){
@@ -540,11 +501,11 @@ static bool handle_http_request(int sockfd){
                         return false;
                     }
                                         
-                    if(player_cookies[0] == this_cookie){
-                        player_cookies[0] = 0;
+                    if(player_sockets[0] == sockfd){
+                        player_sockets[0] = 0;
                         guessed[0] = true;
-                    }else if(player_cookies[1] == this_cookie){
-                        player_cookies[1] = 0;
+                    }else if(player_sockets[1] == sockfd){
+                        player_sockets[1] = 0;
                         guessed[1] = true;
                     }else{
                         printf("ERROR\n");
@@ -552,13 +513,13 @@ static bool handle_http_request(int sockfd){
 
                 //both player are ready for guessing   
                 }else if(gamestate == 3){
-                    // if(player_sockets[0] == 0 && player_sockets[1] != 0 && player_sockets[1]!= sockfd){
-                    //     player_sockets[0] = sockfd;
-                    // }else if(player_sockets[1] == 0 && player_sockets[0] != 0 && player_sockets[0]!= sockfd){
-                    //     player_sockets[1] = sockfd;
-                    // }else{
-                    //     printf("both have sockets");
-                    // }
+                    if(player_sockets[0] == 0 && player_sockets[1] != 0 && player_sockets[1]!= sockfd){
+                        player_sockets[0] = sockfd;
+                    }else if(player_sockets[1] == 0 && player_sockets[0] != 0 && player_sockets[0]!= sockfd){
+                        player_sockets[1] = sockfd;
+                    }else{
+                        printf("both have sockets");
+                    }
                     
                     char word[100] = {};
 
@@ -567,9 +528,9 @@ static bool handle_http_request(int sockfd){
 
 
                     int player = 0;
-                    if(this_cookie == player_cookies[0]){
+                    if(sockfd == player_sockets[0]){
                         player = 1;
-                    }else if(this_cookie == player_cookies[1]){
+                    }else if(sockfd == player_sockets[1]){
                         player = 2;
                     }
                     
@@ -589,12 +550,12 @@ static bool handle_http_request(int sockfd){
                         //move to next turn(next image)
                         turn +=1;
 
-                        if(player_cookies[0] == this_cookie){
-                            player_cookies[0] = 0;
+                        if(player_sockets[0] == sockfd){
+                            player_sockets[0] = 0;
                             guessed[0] = true;
                             
-                        }else if(player_cookies[1] == this_cookie){
-                            player_cookies[1] = 0;
+                        }else if(player_sockets[1] == sockfd){
+                            player_sockets[1] = 0;
                             guessed[1] = true;
                             
                         }else{
@@ -612,10 +573,10 @@ static bool handle_http_request(int sockfd){
                     //both player are ready  
 
                     char wordstring[2049] = "";
-                    if(player_cookies[0] == this_cookie){
+                    if(player_sockets[0] == sockfd){
                         make_string(words_player1, length1, wordstring);
                         printf("WWW%s\n", wordstring);
-                    }else if (player_cookies[1] == this_cookie){
+                    }else if (player_sockets[1] == sockfd){
                         make_string(words_player2, length2, wordstring);
                         printf("WWW%s\n", wordstring);
                     }else{
@@ -631,8 +592,8 @@ static bool handle_http_request(int sockfd){
 
                 }else{
                     printf("discard:\n");
-                    // printf("first player socket:%d\n",player_sockets[0]);
-                    // printf("second player socket:%d\n",player_sockets[1]);
+                    printf("first player socket:%d\n",player_sockets[0]);
+                    printf("second player socket:%d\n",player_sockets[1]);
 
                     bool result;
                     result = sendhttp("5_discarded.html", sockfd, buff, &n, turn, this_cookie);
@@ -659,21 +620,17 @@ static bool handle_http_request(int sockfd){
 
         //simply return the initial html
         if (method == GET && is_new_player == true){  
-            // if(player_cookies[0] == 0){
-            //     player_cookies[0] = this_cookie;
-            // }else if(player_cookies[1] == 0){
-            //     player_cookies[1] = this_cookie;
-            // }
+            if(player_cookies[0] == 0){
+                player_cookies[0]
+            }
             bool result;
             result = sendhttp("1_intro.html", sockfd, buff, &n, turn, this_cookie);
             if(result == false){
                 printf("false20\n");
                 return false;
             }
-        
-        //player has cookie, not new player
-        }else if (method == GET && is_new_player == false){
             
+        }else if (method == GET && is_new_player == false){   
             bool result;
             result = sendhttp_2str("2_start.html", sockfd, buff, turn, name_list[this_cookie], this_cookie);
             if(result == false){
@@ -683,7 +640,7 @@ static bool handle_http_request(int sockfd){
             
         }else if (method == POST){ 
 
-            //find the username
+            //finf the username
             char* username = strstr(curr, "user=")+5;
             int username_length = strlen(username);
             strcpy(name_list[this_cookie], username);
