@@ -186,6 +186,8 @@ bool handle_http_request(int sockfd){
                     player_cookies[1] = 0;
                     player_cookies[0] = 0;
                     gamestate = 0;
+                    length1 = 0;
+                    length2 = 0;
                     return false;
 
                 //one player guessed, thus another player endgame
@@ -284,6 +286,8 @@ bool handle_http_request(int sockfd){
             }
 
             isquit += 1;
+            length1 = 0;
+            length2 = 0;
 
             if(sendhttp("7_gameover.html", sockfd, buff, &n, turn, this_cookie) == false){
                 return false;

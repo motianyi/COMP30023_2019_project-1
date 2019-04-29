@@ -23,7 +23,7 @@ bool game(char* word, int player, char words_player1[][100], char words_player2[
             strcpy(words_player2[*length2], word);
             *length2+=1;
         }
-        printf("false5\n");
+        
         return false;
     }else if(player == 1){
         
@@ -45,9 +45,9 @@ bool game(char* word, int player, char words_player1[][100], char words_player2[
             //otherwise add the word into the array
             strcpy(words_player1[*length1], word);
             *length1+=1;
-            printf("length1 is %d\n",*length1);
+            // printf("length1 is %d\n",*length1);
         }
-        printf("false6\n");
+        
         return false;
     }else{
         return false;

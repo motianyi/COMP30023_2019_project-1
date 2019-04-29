@@ -1,6 +1,10 @@
 
 /*
 ** main.c
+Tianyi MO
+875556
+COMP30023 Computer Systems 
+April 2019
 */
 
 #include "sendhttp.h"
