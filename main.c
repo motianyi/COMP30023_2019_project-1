@@ -95,10 +95,8 @@ int main(int argc, char * argv[])
         // loop all possible descriptor
         for (int i = 0; i <= maxfd; ++i)
             // determine if the current file descriptor is active
-            if (FD_ISSET(i, &readfds))
-            
-            {   
-                printf("%d is readey to read\n", i);
+            if (FD_ISSET(i, &readfds)){  
+                 
                 // create new socket if there is new incoming connection request
                 if (i == sockfd)
                 {
@@ -126,7 +124,6 @@ int main(int argc, char * argv[])
                 }
                 // a request is sent from the client
                 else if (!handle_http_request(i)){   
-                    printf("CLOSE");
                     close(i);
                     FD_CLR(i, &masterfds);
                 }

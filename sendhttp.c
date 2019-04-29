@@ -19,7 +19,7 @@
 #include <unistd.h>
 
 
-
+// constants
 static char* IMAGE_1 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-1.jpg";
 static char* IMAGE_2 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-2.jpg";
 static char* IMAGE_3 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac5aecd721b977f0/comp30023-project/image-3.jpg";
@@ -27,8 +27,7 @@ static char* IMAGE_4 ="https://swift.rc.nectar.org.au/v1/AUTH_eab314456b624071ac
 
 
 
-// constants
-
+// return ther image URL of that turn
 char* get_image_name(int turn){
     if(turn == 1){
         return IMAGE_1;
@@ -41,7 +40,7 @@ char* get_image_name(int turn){
     }
 }
 
-
+//send html file with 1 strings input, image URL
 bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn, int cookie){
     char html[2049];
     // get the size of the file
@@ -65,12 +64,10 @@ bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn, int cook
     if (write(sockfd, buff, a) < 0)
     {
         perror("write");
-        printf("false1\n");
         return false;
         
     }
 
-    
     // read the content of the HTML file
     int filefd = open(filename, O_RDONLY);
     a = read(filefd, buff, 2048);
@@ -79,7 +76,6 @@ bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn, int cook
     {
         perror("read");
         close(filefd);
-        printf("false2\n");
         return false;
     }
     close(filefd);
@@ -89,21 +85,20 @@ bool sendhttp(char* filename, int sockfd, char* buff, int* n, int turn, int cook
     {
         perror("sprintf get error");
         close(filefd);
-        printf("false3\n");
         return false;
     }
-    // printf("%.*s\n",(int)size, html);
+
+    //send html
     if (write(sockfd, html, size) < 0)
     {
         perror("write");
-        printf("false4\n");
         return false;
     }
     return true;
 
 }
 
-
+//send html file with 2 strings input, image URL and a string
 bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words_string, int cookie){
     char html[2049];
     // get the size of the file
@@ -124,7 +119,6 @@ bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words
     if (write(sockfd, buff, a) < 0)
     {
         perror("write");
-        printf("false1\n");
         return false;
         
     }
@@ -138,7 +132,6 @@ bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words
     {
         perror("read");
         close(filefd);
-        printf("false2\n");
         return false;
     }
     close(filefd);
@@ -148,14 +141,12 @@ bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words
     {
         perror("sprintf get error");
         close(filefd);
-        printf("false3\n");
         return false;
     }
-    // printf("%.*s\n",(int)size, html);
+
     if (write(sockfd, html, size) < 0)
     {
         perror("write");
-        printf("false4\n");
         return false;
     }
     return true;
@@ -164,7 +155,7 @@ bool sendhttp_2str(char* filename, int sockfd, char* buff, int turn, char* words
 
 
 
-
+//send favicon.ico file to socket
 bool sendimage(int sockfd, int cookie){
     char image[2049];
     // get the size of the file
@@ -181,7 +172,6 @@ bool sendimage(int sockfd, int cookie){
     if (write(sockfd, image, a) < 0)
     {
         perror("write");
-        printf("false1\n");
         return false;
         
     }
@@ -195,15 +185,14 @@ bool sendimage(int sockfd, int cookie){
     {
         perror("read");
         close(filefd);
-        printf("false2\n");
         return false;
     }
     close(filefd);
     
+    //senf image file
     if (write(sockfd, image, size) < 0)
     {
         perror("write");
-        printf("false4\n");
         return false;
     }
     return true;
